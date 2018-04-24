@@ -66,8 +66,9 @@ class GetMarkables:
             self.finding('这','>','<',index)
             tag = self.get_pos_tag(self.sentenceList[5], '这')
             if tag in self.TAGList:
-                dict_tag = {}
-                dict_tag['pos_tag'] = tag
+                props = {}
+                props['pos_tag'] = tag
+                props['filename'] = filename
                 print("sentenceList =", self.sentenceList)
                 NVList = [[],[],[],[],[],[],[],[],[],[],[]]
                 j = 0
@@ -89,7 +90,7 @@ class GetMarkables:
                     writeObj.write('\n')
                     writeObj.write(str(NVList))
                     writeObj.write('\n')
-                    writeObj.write(str(dict_tag))
+                    writeObj.write(str(props))
                     writeObj.write('\n')
                 print("File", destname, "is done!\n")
                 self.sentenceList = ['','','','','','','','','','','']
@@ -112,8 +113,10 @@ class GetMarkables:
                 print("sentenceList =", self.sentenceList)
                 tag = self.get_pos_tag(self.sentenceList[5], '那')
                 if tag in self.TAGList:
-                    dict_tag = {}
-                    dict_tag['pos_tag'] = tag
+                    props = {}
+                    props['pos_tag'] = tag
+                    sent_num_end = self.s.find(':')
+                    props['sent_num'] = eval(self.s[:sent_num_end])
                     NVList = [[],[],[],[],[],[],[],[],[],[],[]]
                     j = 0
                     for sentence in self.sentenceList:
@@ -134,7 +137,7 @@ class GetMarkables:
                         writeObj.write('\n')
                         writeObj.write(str(NVList))
                         writeObj.write('\n')
-                        writeObj.write(str(dict_tag))
+                        writeObj.write(str(props))
                         writeObj.write('\n')
                     print("File", destname, "is done!\n")
                     self.cnt += 1
@@ -144,7 +147,7 @@ class GetMarkables:
                 index += 1
 
     def finding(self, dest_str, stop_str1, stop_str2, index):
-        PUList = ['，', '。', '；', '？', '！']
+        PUList = ['，', '。', '；', '？', '！', ',']
         # get 5 sentences before anaphora
         j=0
         flag=0
@@ -158,7 +161,8 @@ class GetMarkables:
             elif self.s[index-1]==stop_str1:
                 j=j+1
                 if j==1 and flag==0:
-                    tmpIndex=index+1
+                    tmpIndex=index
+                index=index-1
                 break
             index=index-1
         index=index+1
@@ -275,13 +279,13 @@ class GetMarkables:
 
     def preprocessing(self):
         for fobj in self.fileList:
-            o.read_meterial_YM(fobj)
-            # o.read_meterial_CCL(fobj)
+            # o.read_meterial_YM(fobj)
+            o.read_meterial_CCL(fobj)
                 
 
 if __name__ == '__main__':
-    inputDir = './rawMaterial2'
-    outputDir = './result2'
+    inputDir = './rawMaterial'
+    outputDir = './result'
     o = GetMarkables(inputDir,outputDir)
     o.preprocessing()
     o.close_corenlp()
