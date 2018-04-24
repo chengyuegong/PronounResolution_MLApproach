@@ -243,7 +243,7 @@ class GetMarkables:
                 VPIndexList.append(VPindex)
             begin = VPindex+1
             VPindex = parsestr.find(VERBPHRASE, begin)
-        # print(NPIndexList)
+        # print(VPIndexList)
         for i in VPIndexList:
             vphrase = ''
             cur = i+3
