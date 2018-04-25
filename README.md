@@ -1,4 +1,3 @@
 # PronounResolution_MLApproach
 Project for undergraduate thesis (design)
-Hello
-Hello2
+This project aims to do something very interesting.
