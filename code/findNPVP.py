@@ -57,7 +57,7 @@ class GetMarkables:
 
     def read_meterial_YM(self, filename):
         print("---------------+++++++++++++++---------------")
-        print(filename, "is processing!")
+        print(filename, "is being processed!")
         with codecs.open(self.srcPath+'/'+filename, encoding='utf-8') as fileObj:
             self.s = fileObj.read()
         index = 0
@@ -194,7 +194,7 @@ class GetMarkables:
             index = index+1
 
     def getAllNounPhrase(self, sentence):
-        print(sentence, "is processing! -- NP")
+        print(sentence, "is being processed! -- NP")
         NPIndexList = []
         NPlist = []
         parsestr = ''
@@ -233,7 +233,7 @@ class GetMarkables:
         return NPlist
     
     def getAllVerbPhrase(self, sentence):
-        print(sentence, "is processing! -- VP")
+        print(sentence, "is being processed! -- VP")
         VPIndexList = []
         VPList = []
         parsestr = ''
