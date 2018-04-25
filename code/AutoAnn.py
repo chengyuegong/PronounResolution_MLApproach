@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Author: Gong Chengyue & Zhang Hongwei
 # Orgnization: Zhejiang University
-# Version: 1.0
+# Version: 1.1
 # Date Updated: 04/25/2018
 
 import os
@@ -21,7 +21,8 @@ class AutomaticAnnotation:
 		self.nlp = StanfordCoreNLP(local_corenlp_path, memory='8g', lang='zh')
 		self.inputDirPath = inputDirPath # input file path
 		self.outputDirPath = outputDirPath # output file path
-		self.outputFile = open(self.outputDirPath+'/featureVectors.txt', 'w') # create a file for saving feature vectors
+		self.outputFV = open(self.outputDirPath+'/featureVectors.txt', 'w') # create a file for saving feature vectors
+		self.outputResult = open(self.outputDirPath+'/result.txt', 'a') # create a file for saving result
 		# self.fileList = [] # input file list
 		# self.get_input_fileList() # get all input file
 		self.sentenceSeg = [] # list of sentence
@@ -29,12 +30,13 @@ class AutomaticAnnotation:
 		self.synonym_dict = {} # dictionary of synonym
 		self.create_dictionary() # create a dictionary from the file
 		self.fVector = [0, 0, 0, 0, 0, 0, 0, 0, 0] # feature vector
+		self.WORD = '那' # keyword
 
 	def init_fVector(self):
 		self.fVector = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 	def close_file(self):
-		self.outputFile.close()
+		self.outputFV.close()
 
 	def close_corenlp(self):
 		self.nlp.close()
@@ -105,7 +107,7 @@ class AutomaticAnnotation:
 					cnt_zhe_argList = 0
 					flag=-1
 					for elements in argList:
-						if '那' in elements:
+						if self.WORD in elements:
 							break
 						cnt_zhe_argList = cnt_zhe_argList+1
 					if cnt_zhe_argList!=len(argList):
@@ -118,11 +120,11 @@ class AutomaticAnnotation:
 							changeBit1=0
 							changeBit2=1
 					for elements in self.NVList[tmpcnt_arglist]:
-						if (elements in argList) and ('那' not in elements) and argList[argList.index(elements)+1]=='arg0':
+						if (elements in argList) and (self.WORD not in elements) and argList[argList.index(elements)+1]=='arg0':
 				 			tmp_resultVector.append([1,0,changeBit1,changeBit2,changeBit1])
-						elif (elements in argList) and ('那' not in elements) and argList[argList.index(elements)+1]=='arg1':
+						elif (elements in argList) and (self.WORD not in elements) and argList[argList.index(elements)+1]=='arg1':
 							tmp_resultVector.append([0,1,changeBit1,changeBit2,changeBit2])
-						elif ('那' not in elements):
+						elif (self.WORD not in elements):
 							tmp_resultVector.append([0,0,changeBit1,changeBit2,0])
 			for elements in tmp_resultVector:
 				elements[2] = changeBit1
@@ -180,11 +182,22 @@ class AutomaticAnnotation:
 				self.synonym_dict[line[i]] = value
 
 	def write_feature_vector(self, n):
-		self.outputFile.write(str(n)+' '+str(self.fVector)+'\n')
-		self.outputFile.flush()
+		self.outputFV.write(str(n)+' '+str(self.fVector)+'\n')
+		self.outputFV.flush()
 		print("Feature Vector", self.fVector, "has been written into the output file!")
 
-	def annotating(self):
+	def write_result(self, n, result, total):
+		if result == 0:
+			self.outputResult.write(str(n)+' 0\n')
+		else:	
+			tvec = [0] * total
+			for i in result:
+				tvec[i] = 1
+			self.outputResult.write(str(n)+' '+str(tvec)+'\n')
+			self.outputResult.flush()
+			print("Result", tvec, "has been written into the output file!")	
+
+	def auto_annotating(self):
 		file_n = 1
 		while (os.path.exists(self.inputDirPath+'/'+str(file_n)+'.txt')):
 			with open(self.inputDirPath+'/'+str(file_n)+'.txt','r') as fileObj:
@@ -197,16 +210,6 @@ class AutomaticAnnotation:
 			tmpVector = []
 			print(colored("****************************************","yellow"))
 			print(colored(str(file_n)+".txt is being automatically annotated!","red"))
-			# i=0
-			# print(colored('The original text is:','green'))
-			# for elements in self.sentenceSeg:
-			# 	if elements and i==5:
-			# 		print(colored(elements,"red"), end =' ')
-			# 	elif elements:
-			# 		print(elements, end=' ')
-			# 	i=i+1
-			# print()
-			# print(colored('The possible NPs corresponding to 那 are:','green'))
 
 			dis_list = []
 			tmp_dis_cnt=0
@@ -214,35 +217,23 @@ class AutomaticAnnotation:
 			for elements in self.NVList:				
 				if elements:
 					for elementss in elements:
-						if elementss.find('那') == -1:							
+						if elementss and elementss.find(self.WORD) == -1:							
 							tmpVector.append(elementss)
 							dis_list.append(round((0.5+(tmp_dis_cnt-5)/10),1))
 							# print(colored(str(cnt)+'. '+elementss,'blue'))
 							cnt=cnt+1
 				tmp_dis_cnt += 1
 
-			# c_n=eval(input(colored('Choose the ones that corresponded to 那 (Enter the number in form of [1,2,3]): [Enter 0 to skip]' ,'green')))
-			# if c_n == 0:
-			# 	present_cnt_of_files += 1
-			# 	with open(self.outputDirPath+'/page.txt','w') as writeObj:
-			# 		writeObj.write(str(present_cnt_of_files))
-			# 	continue
-			# print(colored("Choice accpeted!",'green'))
-
 			# automatic annotation begins!
 			srlist = self.get_semantic_role() # 2D
-			index = 0
 			for k in range(len(tmpVector)):
-				if tmpVector[index] == '':
-					del tmpVector[index]
-					continue
 				self.fVector[0:5] = srlist[k][0:5]
 				print(colored("Segmentic Role OK!","blue"))
 				self.is_ana_pronoun(props)
 				print(colored("Anaphora is PN or DT OK!","blue"))
-				self.is_string_match(tmpVector[index])
+				self.is_string_match(tmpVector[k])
 				print(colored("String Match OK!","blue"))
-				self.is_center_match(tmpVector[index])
+				self.is_center_match(tmpVector[k])
 				print(colored("Center Match Role OK!","blue"))
 				self.fVector[8] = dis_list[k]
 				print(colored("Distance OK!","blue"))
@@ -250,15 +241,67 @@ class AutomaticAnnotation:
 					# self.fVector[9] = 1
 				self.write_feature_vector(file_n)
 				self.init_fVector()
-				index += 1
 			file_n += 1
 
-			# print(colored("****************************************","yellow"))
 		self.close_file()
-		self.close_corenlp
+		self.close_corenlp()
+
+	def man_annotating(self):
+		with open(self.outputDirPath+'/page.txt', 'r') as fobj:
+			file_n = int(fobj.read())
+		pageFile = open(self.outputDirPath+'/page.txt', 'w')
+		while (os.path.exists(self.inputDirPath+'/'+str(file_n)+'.txt')):
+			with open(self.inputDirPath+'/'+str(file_n)+'.txt','r') as fileObj:
+				s = fileObj.read()
+				[resultList, resultList2, props, blank] = s.split('\n')
+				self.sentenceSeg = eval(resultList)
+				self.NVList = eval(resultList2)
+				props = eval(props)
+
+			# manual annotation begins!
+			tmpVector = []
+			print(colored("****************************************","yellow"))
+			print(colored(str(file_n)+".txt is being manually annotated!","red"))
+
+			i = 0
+			print(colored('The original text is:','green'))
+			for elements in self.sentenceSeg:
+				if elements and i == 5:
+					print(colored(elements,"red"), end=' ')
+				elif elements:
+					print(elements, end=' ')
+				i += 1
+			print()
+
+			print(colored('The possible NPs and VPs corresponding to '+self.WORD+' are:','green'))
+
+			cnt = 0 # number of NP&VP -> len(tmpVector)
+			for elements in self.NVList:				
+				if elements:
+					for elementss in elements:
+						if elementss and elementss.find(self.WORD) == -1:							
+							tmpVector.append(elementss)
+							print(colored(str(cnt)+'. '+elementss,'blue'))
+							cnt=cnt+1
+
+			c_n=eval(input(colored('Choose the ones that correspond to '+self.WORD+' (Enter the number in form of [1,2,3]): [Enter 0 to skip]' ,'green')))
+			while c_n != 0 and type(c_n) != list:
+				print(colored("Wrong format!! Enter agian:",'red'))
+				c_n=eval(input(colored('Choose the ones that correspond to '+self.WORD+' (Enter the number in form of [1,2,3]): [Enter 0 to skip]' ,'green')))
+			print(colored("Choice accpeted!",'green'))
+
+			self.write_result(file_n, c_n, len(tmpVector))
+			file_n += 1
+			pageFile.seek(0,0)
+			pageFile.write(str(file_n))
+
+		pageFile.close()
+		self.close_file()
+		self.close_corenlp()
 
 if __name__ == '__main__':
 	inputpath = os.path.abspath('./result')
 	outputpath = os.path.abspath('./labeled')
 	a = AutomaticAnnotation(inputpath, outputpath)
-	a.annotating()
+	a.auto_annotating()
+	# a.man_annotating()
