@@ -8,7 +8,7 @@ import os
 from termcolor import *
 import urllib.request
 from stanfordcorenlp import StanfordCoreNLP
-
+import xml.dom.minidom
 # Feature Vector[9] = [ant_arg0, ant_arg1, ana_arg0, ana_arg1, same_target, ana_pronoun, string_match, center_match, distance] - shape=[n_samples, 9]
 # Result Vector - shape=[n_samples]
 
@@ -18,7 +18,7 @@ class AutomaticAnnotation:
 		#path of stanford corenlp
 		local_corenlp_path = r'./stanford-corenlp-full-2018-02-27'
 		online_corenlp_path = r'http://corenlp.run'
-		self.nlp = StanfordCoreNLP(local_corenlp_path, memory='8g', lang='zh')
+		self.nlp = StanfordCoreNLP(local_corenlp_path, memory='4g', lang='zh')
 		self.inputDirPath = inputDirPath # input file path
 		self.outputDirPath = outputDirPath # output file path
 		self.outputFV = open(self.outputDirPath+'/featureVectors.txt', 'w') # create a file for saving feature vectors
@@ -30,7 +30,7 @@ class AutomaticAnnotation:
 		self.synonym_dict = {} # dictionary of synonym
 		self.create_dictionary() # create a dictionary from the file
 		self.fVector = [0, 0, 0, 0, 0, 0, 0, 0, 0] # feature vector
-		self.WORD = '那' # keyword
+		self.WORD = '这' # keyword
 
 	def init_fVector(self):
 		self.fVector = [0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -58,30 +58,49 @@ class AutomaticAnnotation:
 	# 		offset += 1
 	# 	self.fVector[8] = round((0.5+(offset-5)/10),1)
 
+# outdated
+	#def gen_args(self, content):
+	#    tmpList = []
+	#    tmpStr = ''
+	#    indexA1 = 0
+	#    while content.find('A1',indexA1)!=-1 or content.find('A0',indexA1)!=-1:
+	#        indexA1 = content.find('A',indexA1)
+	#        if content[indexA1+1]!='1' and content[indexA1+1]!='0':
+	#        	indexA1 = indexA1+1
+	#        	continue
+	#        indexA1c = content.rfind('[',0,indexA1)
+	#        for k in range(indexA1-indexA1c-2):
+	#            tmpStr = tmpStr+content[indexA1c+1+k]
+	#        tmpList.append(tmpStr.replace(' ',''))
+	#        tmpList.append('arg'+content[indexA1+1])
+	#        indexA1 = indexA1+1
+	#        tmpStr = ''
+	#   return tmpList
+
 	def gen_args(self, content):
-	    tmpList = []
-	    tmpStr = ''
-	    indexA1 = 0
-	    while content.find('A1',indexA1)!=-1 or content.find('A0',indexA1)!=-1:
-	        indexA1 = content.find('A',indexA1)
-	        if content[indexA1+1]!='1' and content[indexA1+1]!='0':
-	        	indexA1 = indexA1+1
-	        	continue
-	        indexA1c = content.rfind('[',0,indexA1)
-	        for k in range(indexA1-indexA1c-2):
-	            tmpStr = tmpStr+content[indexA1c+1+k]
-	        tmpList.append(tmpStr.replace(' ',''))
-	        tmpList.append('arg'+content[indexA1+1])
-	        indexA1 = indexA1+1
-	        tmpStr = ''
-	    return tmpList
+		tmpList=[]
+		a = xml.dom.minidom.parseString(content)
+		for node in a.getElementsByTagName('arg'):
+			if node.getAttribute('type') == 'A0' or node.getAttribute('type') == 'A1':
+				begin = int(node.getAttribute('beg'))
+				end = int(node.getAttribute('end'))
+				tmpStr = ''
+				for node2 in a.getElementsByTagName('word'):
+					if int(node2.getAttribute('id'))>=begin and int(node2.getAttribute('id'))<=end:
+						tmpStr = tmpStr+node2.getAttribute('cont')
+				tmpList.append(tmpStr)
+				if node.getAttribute('type') == 'A0':
+					tmpList.append('arg0')
+				else:
+					tmpList.append('arg1')
+		return tmpList
 
 	def get_semantic_role(self):
 		# determination of feature 0-4
-		url_base = "http://api.ltp-cloud.com/analysis/?"
-		api_key  = "71387141h3MIFv4IXp7aiPXFWQ6dOqlSrualbOoc"
-		pattern  = "srl"
-		format = 'plain'
+		url_base = "http://127.0.0.1:8080/ltp"
+		#api_key  = "71387141h3MIFv4IXp7aiPXFWQ6dOqlSrualbOoc"
+		#pattern  = "srl"
+		#format = 'plain'
 		changeBit1=0
 		changeBit2=0
 		tmp_resultVector = []
@@ -90,10 +109,11 @@ class AutomaticAnnotation:
 		for element in self.sentenceSeg:
 			if element:
 				print(element, "is being processed!")
-				text = urllib.request.quote(element)
-				url  = (url_base + "api_key=" + api_key + "&" + "text=" + text + "&"+ "format="+ format + "&" + "pattern=" + pattern)
-				result = urllib.request.urlopen(url)
-				content = result.read().strip().decode()
+				#text = urllib.request.quote(element)
+				#url  = (url_base + "api_key=" + api_key + "&" + "text=" + text + "&"+ "format="+ format + "&" + "pattern=" + pattern)
+				#result = urllib.request.urlopen(url)
+				#content = result.read().strip().decode()
+				content = os.popen(r'curl -d "s='+element+r'&x=n&t=all" '+url_base).read()
 				argList = self.gen_args(content)
 				if (tmpcnt_arglist!=5) and self.NVList[tmpcnt_arglist]:
 					for elements in self.NVList[tmpcnt_arglist]:
