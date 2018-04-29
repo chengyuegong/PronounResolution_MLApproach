@@ -1,8 +1,8 @@
 # _*_coding:utf-8_*_
 # Author: Gong Chengyue & Zhang Hongwei
 # Orgnization: Zhejiang University
-# Version: 1.0
-# Date Updated: 04/24/2018
+# Version: 1.1
+# Date Updated: 04/29/2018
 
 import os
 import codecs
@@ -147,7 +147,7 @@ class GetMarkables:
                 index += 1
 
     def finding(self, dest_str, stop_str1, stop_str2, index):
-        PUList = ['，', '。', '；', '？', '！', ',']
+        PUList = ['，', '。', '；', '？', '！', '：', ',', ':', ';', '?', '!']
         # get 5 sentences before anaphora
         j=0
         flag=0
@@ -280,12 +280,12 @@ class GetMarkables:
     def preprocessing(self):
         for fobj in self.fileList:
             # o.read_meterial_YM(fobj)
-            o.read_meterial_CCL(fobj)
+            self.read_meterial_CCL(fobj)
                 
 
 if __name__ == '__main__':
-    inputDir = './rawMaterial'
-    outputDir = './result'
+    inputDir = os.path.abspath('./rawMaterial')
+    outputDir = os.path.abspath('./result')
     o = GetMarkables(inputDir,outputDir)
     o.preprocessing()
     o.close_corenlp()
