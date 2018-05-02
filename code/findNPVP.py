@@ -147,7 +147,7 @@ class GetMarkables:
                 index += 1
 
     def finding(self, dest_str, stop_str1, stop_str2, index):
-        PUList = ['，', '。', '；', '？', '！', '：', ',', ':', ';', '?', '!']
+        PUList = ['，', '。', '；', '？', '！', '：', ',', ';', '?', '!']
         # get 5 sentences before anaphora
         j=0
         flag=0
