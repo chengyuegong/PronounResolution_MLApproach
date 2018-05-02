@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # Author: Gong Chengyue & Zhang Hongwei
 # Orgnization: Zhejiang University
-# Version: 1.1
-# Date Updated: 04/25/2018
+# Version: 1.2
+# Date Updated: 05/02/2018
 
 import os
 from termcolor import *
@@ -21,8 +21,6 @@ class AutomaticAnnotation:
 		self.nlp = StanfordCoreNLP(local_corenlp_path, memory='4g', lang='zh')
 		self.inputDirPath = inputDirPath # input file path
 		self.outputDirPath = outputDirPath # output file path
-		self.outputFV = open(self.outputDirPath+'/featureVectors.txt', 'w') # create a file for saving feature vectors
-		self.outputResult = open(self.outputDirPath+'/result.txt', 'a') # create a file for saving result
 		# self.fileList = [] # input file list
 		# self.get_input_fileList() # get all input file
 		self.sentenceSeg = [] # list of sentence
@@ -34,9 +32,6 @@ class AutomaticAnnotation:
 
 	def init_fVector(self):
 		self.fVector = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-	def close_file(self):
-		self.outputFV.close()
 
 	def close_corenlp(self):
 		self.nlp.close()
@@ -169,7 +164,7 @@ class AutomaticAnnotation:
 				if element[1] == 'NN':
 					ant_NN_list.append(element[0])
 			for element in ant_NN_list:
-				if sentence.find(element) != -1:
+				if sentence.find(element) != -1 and sentence.find(self.WORD) < sentence.find(element):
 					self.fVector[6] = 1
 					return
 
@@ -218,6 +213,7 @@ class AutomaticAnnotation:
 			print("Result", tvec, "has been written into the output file!")	
 
 	def auto_annotating(self):
+		self.outputFV = open(self.outputDirPath+'/featureVectors.txt', 'w') # create a file for saving feature vectors
 		file_n = 1
 		while (os.path.exists(self.inputDirPath+'/'+str(file_n)+'.txt')):
 			with open(self.inputDirPath+'/'+str(file_n)+'.txt','r') as fileObj:
@@ -263,10 +259,11 @@ class AutomaticAnnotation:
 				self.init_fVector()
 			file_n += 1
 
-		self.close_file()
-		self.close_corenlp()
+		self.outputFV.close()
+		self.close_corenlp()	
 
 	def man_annotating(self):
+		self.outputResult = open(self.outputDirPath+'/result.txt', 'a') # create a file for saving result
 		with open(self.outputDirPath+'/page.txt', 'r') as fobj:
 			file_n = int(fobj.read())
 		pageFile = open(self.outputDirPath+'/page.txt', 'w')
@@ -316,7 +313,6 @@ class AutomaticAnnotation:
 			pageFile.write(str(file_n))
 
 		pageFile.close()
-		self.close_file()
 		self.close_corenlp()
 
 if __name__ == '__main__':
